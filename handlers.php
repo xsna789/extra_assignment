@@ -74,7 +74,7 @@ function handleProcessAction() {
     if ($content !== false) {
         $_SESSION['emails'] = extractEmails($content);
         $_SESSION['phones'] = extractPhoneNumbers($content);
-        $_SESSION['images'] = extractImageUrls($content);
+        $_SESSION['images'] = extractImageUrls($content, $input);
         $_SESSION['source'] = $isUrl ? "URL: $input" : "Text Input";
     } else {
         throw new Exception("Could not fetch URL content");
@@ -90,7 +90,7 @@ function handleclear_result_form() {
     if ($content !== false) {
         $_SESSION['emails'] = extractEmails($content);
         $_SESSION['phones'] = extractPhoneNumbers($content);
-        $_SESSION['images'] = extractImageUrls($content);
+        $_SESSION['images'] = extractImageUrls($content, $input);
         $_SESSION['source'] = $isUrl ? "URL: $input" : "Text Input";
 
         session_destroy();
