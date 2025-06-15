@@ -294,4 +294,12 @@ a:hover {
         width: 100%;
         justify-content: flex-end;
     }
+    
 }
+
+.tab-item {
+        margin-top: 50px;
+        font-size: larger;
+        font-family: Khmer OS;
+        color: var(--primary-color);
+}  

@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once __DIR__ . '/functions.php';  // Fixed path with slash
+require_once 'functions.php';  // Fixed path with slash
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? 'process';
@@ -23,6 +23,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 handleZipAction();
                 break;
 
+            case 'pdf':
+                handlePdfAction();
+                break;
+
             case 'process':
             default:
                 handleProcessAction();
@@ -34,6 +38,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     header('Location: index.php');
     exit;
+
+    switch ($action) {
+        case 'emails':
+            $_SESSION['tab_order'] = ['emails', 'phones', 'images'];
+            break;
+    
+        case 'phones':
+            $_SESSION['tab_order'] = ['phones', 'emails', 'images'];
+            break;
+    
+        case 'images':
+            $_SESSION['tab_order'] = ['images', 'emails', 'phones'];
+            break;
+    
+        default:
+            // Handle default tab order or error
+            break;
+    }
 }
 
 function handleSaveAction() {
@@ -49,6 +71,14 @@ function handleCsvAction() {
     $data = $_SESSION[$type] ?? [];
     if (!empty($data)) {
         $_SESSION['download_link'] = saveToFile("{$type}_" . date('Ymd-His'), $data, 'csv');
+    }
+}
+
+function handlePdfAction() {
+    $type = $_POST['type'] ?? '';
+    $data = $_SESSION[$type] ?? [];
+    if (!empty($data)) {
+        $_SESSION['download_link'] = saveToFile("{$type}_" . date('Ymd-His'), $data, 'pdf');
     }
 }
 
@@ -70,40 +100,28 @@ function handleProcessAction() {
     $isUrl = validateUrl($input);
 
     $content = $isUrl ? fetchUrlContent($input) : $input;
+    // $_SESSION['tab-list'] = $content !== false ? ['emails', 'phones', 'images'] : [];
 
     if ($content !== false) {
         $_SESSION['emails'] = extractEmails($content);
         $_SESSION['phones'] = extractPhoneNumbers($content);
         $_SESSION['images'] = extractImageUrls($content, $input);
-        $_SESSION['source'] = $isUrl ? "URL: $input" : "Text Input";
+        $_SESSION['source'] = $isUrl ? "URL: $input" : "URL Input";
+        $_SESSION['tab-list'] = ['emails', 'phones', 'images'];
     } else {
         throw new Exception("Could not fetch URL content");
     }
 }
+
 function handleclear_result_form() {
+    // Unset all session variables
+    session_unset();
 
-  $input = trim($_POST['input'] ?? '');
-    $isUrl = validateUrl($input);
+    // Destroy the session
+    session_destroy();
 
-    $content = $isUrl ? fetchUrlContent($input) : $input;
-
-    if ($content !== false) {
-        $_SESSION['emails'] = extractEmails($content);
-        $_SESSION['phones'] = extractPhoneNumbers($content);
-        $_SESSION['images'] = extractImageUrls($content, $input);
-        $_SESSION['source'] = $isUrl ? "URL: $input" : "Text Input";
-
-        session_destroy();
-        session_unset();
-    }
-  // Unset all session variables
-  
-  
-  // Destroy the session
-  
-  
-  // Redirect to the form page
+    // Redirect to the form page
     header('Location: index.php');
-  exit;
+    exit;
 }
 ?>

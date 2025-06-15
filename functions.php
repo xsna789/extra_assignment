@@ -1,14 +1,16 @@
 <?php
 // Core extraction functions
-function extractEmails($text) {
+function extractEmails($text)
+{
     preg_match_all('/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}\b/i', $text, $matches);
     return array_unique($matches[0]);
 }
 
-function extractPhoneNumbers($text) {
+function extractPhoneNumbers($text)
+{
     // preg_match_all('/(?:\+?\d{1,3}[-.\s]?)?\(?\d{2,3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/', $text, $matches);
     // return array_unique($matches[0]);
-    
+
     $patterns = [
         // International format (e.g., +1 234 567 8901, +442079460000)
         '/\+[\d]{1,4}[\s\-]?[\d]{2,4}[\s\-]?[\d]{3,4}[\s\-]?[\d]{3,4}/',
@@ -37,7 +39,7 @@ function extractPhoneNumbers($text) {
         # With extensions
         '/(?:phone|tel|telephone)[:\s]*([+\d][\d\s\-().]{7,})(?:\s*(?:ext|extension|x)[:\s]*(\d+))?/i'
     ];
-      
+
     $phones = [];
     foreach ($patterns as $pattern) {
         preg_match_all($pattern, $text, $matches);
@@ -73,11 +75,11 @@ function extractPhoneNumbers($text) {
 
     // Remove duplicates and reindex array
     return array_values(array_unique($phones));
+}
 
-    }
 
-   
-function extractImageUrls($html, $baseUrl) {
+function extractImageUrls($html, $baseUrl)
+{
     $images = [];
     $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'tif', 'tiff', 'bmp', 'svg'];
 
@@ -155,26 +157,33 @@ function resolveUrl($relative, $base)
 //     return array_unique(array_filter(array_merge($matches[1], $matches[2])));
 // }
 
-// File handling functions
-function saveToFile($filename, $data, $format = 'txt') {
+
+function saveToFile($filename, $data, $format = 'txt')
+{
     if (!is_dir('downloads')) mkdir('downloads');
     $path = "downloads/" . cleanFilename($filename) . ".$format";
-    
+
     if ($format === 'csv') {
         $fp = fopen($path, 'w');
         foreach ($data as $item) fputcsv($fp, [$item]);
         fclose($fp);
+    } elseif ($format === 'pdf') {
+        $fp = fopen($path, 'wb'); // Use 'wb' mode to write to a PDF file
+        $dataString = implode("\n", $data); // Convert array to string
+        fwrite($fp, $dataString);
+        fclose($fp);
     } else {
         file_put_contents($path, implode("\n", $data));
     }
-    
+
     return $path;
 }
 
-function createZipArchive($files, $zipname) {
+function createZipArchive($files, $zipname)
+{
     $zip = new ZipArchive();
     $path = "downloads/" . cleanFilename($zipname) . ".zip";
-    
+
     if ($zip->open($path, ZipArchive::CREATE) === TRUE) {
         foreach ($files as $file) {
             $zip->addFile($file, basename($file));
@@ -185,12 +194,14 @@ function createZipArchive($files, $zipname) {
     return false;
 }
 
-function cleanFilename($name) {
+function cleanFilename($name)
+{
     return preg_replace('/[^A-Za-z0-9\-]/', '_', $name);
 }
 
 // URL handling
-function fetchUrlContent($url) {
+function fetchUrlContent($url)
+{
     $ch = curl_init();
     curl_setopt_array($ch, [
         CURLOPT_URL => $url,
@@ -204,7 +215,58 @@ function fetchUrlContent($url) {
     return $content ?: false;
 }
 
-function validateUrl($url) {
+function validateUrl($url)
+{
     return filter_var($url, FILTER_VALIDATE_URL) && preg_match('/^https?:\/\//i', $url);
 }
-?>
+
+function displaySection($title, $sessionKey, $prefix = '')
+{
+    if (!empty($_SESSION[$sessionKey])) {
+        $count = count($_SESSION[$sessionKey]);
+        echo "<div class='result-section'>
+            <h3>
+                $title ($count)
+                <div class='toolbar'>
+                    <button class='copy-btn' data-target='$sessionKey'>
+                        <i class='far fa-copy'></i> Copy
+                    </button>
+                    <form method='post' class='inline-form'>
+                        <input type='hidden' name='type' value='$sessionKey'>
+                        <button type='submit' name='action' value='save' title='Save as TXT'>
+                            <i class='far fa-file-alt'></i>
+                        </button>
+                        <button type='submit' name='action' value='csv' title='Save as CSV'>
+                            <i class='far fa-file-excel'></i>
+                        </button>
+                        <button type='submit' name='action' value='pdf' title='Save as PDF'>
+                            <i class='far fa-file-pdf'></i>
+                        </button>";
+
+        if ($sessionKey === 'images') {
+            echo "<button type='button' class='preview-all' data-type='$sessionKey' title='Preview All'>
+                    <i class='far fa-images'></i>
+                </button>";
+        }
+
+        echo "</form>
+                </div>
+            </h3>
+            <ul id='$sessionKey'>";
+
+        foreach ($_SESSION[$sessionKey] as $item) {
+            echo "<li>";
+            if (filter_var($item, FILTER_VALIDATE_URL)) {
+                if ($sessionKey === 'images') {
+                    echo "<img src='$item' class='thumbnail' data-src='$item' alt='Extracted image'>";
+                }
+                echo "<a href='$item' target='_blank'>" . htmlspecialchars($item) . "</a>";
+            } else {
+                echo "<a href='{$prefix}{$item}'>" . htmlspecialchars($item) . "</a>";
+            }
+            echo "</li>";
+        }
+
+        echo "</ul></div>";
+    }
+}
