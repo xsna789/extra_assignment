@@ -75,6 +75,7 @@ function handleCsvAction() {
 }
 
 function handlePdfAction() {
+    
     $type = $_POST['type'] ?? '';
     $data = $_SESSION[$type] ?? [];
     if (!empty($data)) {
