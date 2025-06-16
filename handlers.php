@@ -75,12 +75,58 @@ function handleCsvAction() {
 }
 
 function handlePdfAction() {
-    
+    require_once 'TCPDF-main/tcpdf.php';
     $type = $_POST['type'] ?? '';
     $data = $_SESSION[$type] ?? [];
+    
     if (!empty($data)) {
         $_SESSION['download_link'] = saveToFile("{$type}_" . date('Ymd-His'), $data, 'pdf');
+        // Create new PDF document
+        $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+        
+        // Set document information
+        $pdf->SetCreator('Data Extractor');
+        $pdf->SetAuthor('Data Extractor');
+        $pdf->SetTitle(ucfirst($type) . ' Extracted Data');
+        $pdf->SetSubject('Extracted ' . ucfirst($type));
+        
+        // Set default header data
+        $pdf->SetHeaderData('', 0, 'Extracted ' . ucfirst($type), 'Generated on ' . date('Y-m-d H:i:s'));
+        
+        // Set margins
+        $pdf->SetMargins(15, 15, 15);
+        $pdf->SetHeaderMargin(10);
+        $pdf->SetFooterMargin(10);
+        
+        // Add a page
+        $pdf->AddPage();
+        
+        // Set font
+        $pdf->SetFont('helvetica', '', 12);
+        
+        // Add title
+        $pdf->Cell(0, 10, 'Extracted ' . ucfirst($type), 0, 1, 'C');
+        $pdf->Ln(5);
+        
+        // Add data
+        if (is_array($data)) {
+            foreach ($data as $item) {
+                $pdf->Cell(0, 10, '- ' . $item, 0, 1);
+            }
+        } else {
+            $pdf->MultiCell(0, 10, $data);
+        }
+        
+        // Generate file name
+        $filename = "{$type}_data_" . date('Ymd-His') . '.pdf';
+        
+        // Close and output PDF document
+        $pdf->Output($filename, 'D');
+        exit;
+    } else {
+        throw new Exception("No data available to generate PDF");
     }
+
 }
 
 function handleZipAction() {
